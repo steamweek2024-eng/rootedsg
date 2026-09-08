@@ -42,7 +42,7 @@ jobs:
         run: |
           base64 -d ci/rooted-v2.patch.gz.b64 | gunzip > /tmp/rooted-v2.patch
           cd "rooted-build/Rooted SG App Android"
-          patch -p2 < /tmp/rooted-v2.patch
+          patch -p1 < /tmp/rooted-v2.patch
 
       - name: Prepare local configuration
         working-directory: rooted-build/Rooted SG App Android
