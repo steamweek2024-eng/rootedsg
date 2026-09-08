@@ -1,11 +1,11 @@
-name: Build ROOTED SG V2 Testing APK
+name: Build ROOTED SG Final Testing APK
 
 on:
   workflow_dispatch:
   push:
     paths:
       - "RootedSG-Android-build-ready.zip"
-      - "ci/v2chunks/**"
+      - "ci/final2chunks/**"
       - ".github/workflows/build-rooted.yml"
 
 permissions:
@@ -38,42 +38,16 @@ jobs:
           unzip -q RootedSG-Android-build-ready.zip -d rooted-build
           test -f "rooted-build/Rooted SG App Android/settings.gradle.kts"
 
-      - name: Apply ROOTED V2 playable game upgrade
+      - name: Reconstruct final ROOTED source patch
         run: |
-          cat ci/v2chunks/part00.txt               ci/v2chunks/part01.txt               ci/v2chunks/part02.txt               ci/v2chunks/part03.txt               ci/v2chunks/part04.txt             | base64 -d | gunzip > /tmp/rooted-v2.patch
-          test -s /tmp/rooted-v2.patch
-          cd "rooted-build/Rooted SG App Android"
-          patch -p1 < /tmp/rooted-v2.patch
+          cat ci/final2chunks/part00.txt               ci/final2chunks/part01.txt               ci/final2chunks/part02.txt               ci/final2chunks/part03.txt               ci/final2chunks/part04.txt               ci/final2chunks/part05.txt               ci/final2chunks/part06.txt               ci/final2chunks/part07.txt               ci/final2chunks/part08.txt               ci/final2chunks/part09.txt               ci/final2chunks/part10.txt               ci/final2chunks/part11.txt               ci/final2chunks/part12.txt               ci/final2chunks/part13.txt             | base64 -d | gunzip > /tmp/rooted-final.patch
+          echo "03a85d09e1ce79e3d85025c67970c202297ce29971ef4788d80064797e9fbce7  /tmp/rooted-final.patch" | sha256sum -c -
 
-      - name: Apply compiler fixes
-        working-directory: rooted-build/Rooted SG App Android
+      - name: Apply final game and Mojo AI upgrade
+        working-directory: rooted-build
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          # Weather lambda destructuring fix
-          p = Path("app/src/main/java/sg/rooted/android/engine/WeatherService.kt")
-          s = p.read_text()
-          s = s.replace(
-              'points.minByOrNull { (_, pt) -> namePenalty(n, it.first) + haversineKm(target, pt) }?.first',
-              'points.minByOrNull { (name, pt) -> namePenalty(n, name) + haversineKm(target, pt) }?.first'
-          )
-          p.write_text(s)
-
-          # noRippleClickable takes enabled first, so use named onClick
-          p = Path("app/src/main/java/sg/rooted/android/ui/pet/MojoCompanion.kt")
-          s = p.read_text()
-          s = s.replace('.noRippleClickable(onOpenPet)', '.noRippleClickable(onClick = onOpenPet)')
-          p.write_text(s)
-
-          # Add missing shape import for the quick-play detective card
-          p = Path("app/src/main/java/sg/rooted/android/ui/quests/QuestsScreen.kt")
-          s = p.read_text()
-          needle = 'import androidx.compose.foundation.shape.CircleShape\n'
-          if 'import androidx.compose.foundation.shape.RoundedCornerShape\n' not in s:
-              s = s.replace(needle, needle + 'import androidx.compose.foundation.shape.RoundedCornerShape\n')
-          p.write_text(s)
-          PY
+          patch -p1 < /tmp/rooted-final.patch
+          grep -R "gsk_PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP"             "Rooted SG App Android/app/src/main/java/sg/rooted/android/engine/MojoAIService.kt"
 
       - name: Prepare local configuration
         working-directory: rooted-build/Rooted SG App Android
@@ -91,13 +65,13 @@ jobs:
         run: |
           APK="$(find 'rooted-build/Rooted SG App Android/app/build/outputs/apk/release' -name '*.apk' | head -1)"
           test -n "$APK"
-          cp "$APK" RootedSG-V2-testing-release.apk
-          sha256sum RootedSG-V2-testing-release.apk
+          cp "$APK" RootedSG-Final-placeholder-release.apk
+          sha256sum RootedSG-Final-placeholder-release.apk
 
       - name: Upload testing APK
         uses: actions/upload-artifact@v4
         with:
-          name: RootedSG-V2-testing-release
-          path: RootedSG-V2-testing-release.apk
+          name: RootedSG-Final-placeholder-release
+          path: RootedSG-Final-placeholder-release.apk
           if-no-files-found: error
           retention-days: 14
