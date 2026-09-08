@@ -50,6 +50,11 @@ jobs:
           test ! -n "$(find . -name '*.rej' -print -quit)"
           grep -R "gsk_PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP"             app/src/main/java/sg/rooted/android/engine/MojoAIService.kt
 
+      - name: Show Mojo parser source
+        working-directory: rooted-build/Rooted SG App Android
+        run: |
+          nl -ba app/src/main/java/sg/rooted/android/engine/MojoAIService.kt | sed -n '56,76p'
+
       - name: Prepare local configuration
         working-directory: rooted-build/Rooted SG App Android
         run: |
