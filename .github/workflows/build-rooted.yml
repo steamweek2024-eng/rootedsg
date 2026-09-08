@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - "RootedSG-Android-build-ready.zip"
-      - "ci/rooted-v2.patch.gz.b64"
+      - "ci/v2chunks/**"
       - ".github/workflows/build-rooted.yml"
 
 permissions:
@@ -38,9 +38,10 @@ jobs:
           unzip -q RootedSG-Android-build-ready.zip -d rooted-build
           test -f "rooted-build/Rooted SG App Android/settings.gradle.kts"
 
-      - name: Apply ROOTED V2 game and motion upgrade
+      - name: Apply ROOTED V2 playable game upgrade
         run: |
-          base64 -d ci/rooted-v2.patch.gz.b64 | gunzip > /tmp/rooted-v2.patch
+          cat ci/v2chunks/part00.txt               ci/v2chunks/part01.txt               ci/v2chunks/part02.txt               ci/v2chunks/part03.txt               ci/v2chunks/part04.txt             | base64 -d | gunzip > /tmp/rooted-v2.patch
+          test -s /tmp/rooted-v2.patch
           cd "rooted-build/Rooted SG App Android"
           patch -p1 < /tmp/rooted-v2.patch
 
