@@ -1,10 +1,11 @@
-name: Build ROOTED SG Testing APK
+name: Build ROOTED SG V2 Testing APK
 
 on:
   workflow_dispatch:
   push:
     paths:
       - "RootedSG-Android-build-ready.zip"
+      - "ci/rooted-v2.patch.gz.b64"
       - ".github/workflows/build-rooted.yml"
 
 permissions:
@@ -37,19 +38,11 @@ jobs:
           unzip -q RootedSG-Android-build-ready.zip -d rooted-build
           test -f "rooted-build/Rooted SG App Android/settings.gradle.kts"
 
-      - name: Apply compiler fixes
-        working-directory: rooted-build/Rooted SG App Android
+      - name: Apply ROOTED V2 game and motion upgrade
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("app/src/main/java/sg/rooted/android/engine/WeatherService.kt")
-          s = p.read_text()
-          old = 'points.minByOrNull { (_, pt) -> namePenalty(n, it.first) + haversineKm(target, pt) }?.first'
-          new = 'points.minByOrNull { (name, pt) -> namePenalty(n, name) + haversineKm(target, pt) }?.first'
-          if old not in s:
-              raise SystemExit("Expected WeatherService compiler-fix target not found")
-          p.write_text(s.replace(old, new))
-          PY
+          base64 -d ci/rooted-v2.patch.gz.b64 | gunzip > /tmp/rooted-v2.patch
+          cd "rooted-build/Rooted SG App Android"
+          patch -p2 < /tmp/rooted-v2.patch
 
       - name: Prepare local configuration
         working-directory: rooted-build/Rooted SG App Android
@@ -67,13 +60,13 @@ jobs:
         run: |
           APK="$(find 'rooted-build/Rooted SG App Android/app/build/outputs/apk/release' -name '*.apk' | head -1)"
           test -n "$APK"
-          cp "$APK" RootedSG-testing-release.apk
-          sha256sum RootedSG-testing-release.apk
+          cp "$APK" RootedSG-V2-testing-release.apk
+          sha256sum RootedSG-V2-testing-release.apk
 
       - name: Upload testing APK
         uses: actions/upload-artifact@v4
         with:
-          name: RootedSG-testing-release
-          path: RootedSG-testing-release.apk
+          name: RootedSG-V2-testing-release
+          path: RootedSG-V2-testing-release.apk
           if-no-files-found: error
           retention-days: 14
