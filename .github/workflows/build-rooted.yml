@@ -45,6 +45,36 @@ jobs:
           cd "rooted-build/Rooted SG App Android"
           patch -p1 < /tmp/rooted-v2.patch
 
+      - name: Apply compiler fixes
+        working-directory: rooted-build/Rooted SG App Android
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Weather lambda destructuring fix
+          p = Path("app/src/main/java/sg/rooted/android/engine/WeatherService.kt")
+          s = p.read_text()
+          s = s.replace(
+              'points.minByOrNull { (_, pt) -> namePenalty(n, it.first) + haversineKm(target, pt) }?.first',
+              'points.minByOrNull { (name, pt) -> namePenalty(n, name) + haversineKm(target, pt) }?.first'
+          )
+          p.write_text(s)
+
+          # noRippleClickable takes enabled first, so use named onClick
+          p = Path("app/src/main/java/sg/rooted/android/ui/pet/MojoCompanion.kt")
+          s = p.read_text()
+          s = s.replace('.noRippleClickable(onOpenPet)', '.noRippleClickable(onClick = onOpenPet)')
+          p.write_text(s)
+
+          # Add missing shape import for the quick-play detective card
+          p = Path("app/src/main/java/sg/rooted/android/ui/quests/QuestsScreen.kt")
+          s = p.read_text()
+          needle = 'import androidx.compose.foundation.shape.CircleShape\n'
+          if 'import androidx.compose.foundation.shape.RoundedCornerShape\n' not in s:
+              s = s.replace(needle, needle + 'import androidx.compose.foundation.shape.RoundedCornerShape\n')
+          p.write_text(s)
+          PY
+
       - name: Prepare local configuration
         working-directory: rooted-build/Rooted SG App Android
         run: |
