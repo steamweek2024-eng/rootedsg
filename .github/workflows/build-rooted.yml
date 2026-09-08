@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - "RootedSG-Android-build-ready.zip"
-      - "ci/final2chunks/**"
+      - "ci/final3chunks/**"
       - ".github/workflows/build-rooted.yml"
 
 permissions:
@@ -38,16 +38,17 @@ jobs:
           unzip -q RootedSG-Android-build-ready.zip -d rooted-build
           test -f "rooted-build/Rooted SG App Android/settings.gradle.kts"
 
-      - name: Reconstruct final ROOTED source patch
+      - name: Reconstruct verified final source patch
         run: |
-          cat ci/final2chunks/part00.txt               ci/final2chunks/part01.txt               ci/final2chunks/part02.txt               ci/final2chunks/part03.txt               ci/final2chunks/part04.txt               ci/final2chunks/part05.txt               ci/final2chunks/part06.txt               ci/final2chunks/part07.txt               ci/final2chunks/part08.txt               ci/final2chunks/part09.txt               ci/final2chunks/part10.txt               ci/final2chunks/part11.txt               ci/final2chunks/part12.txt               ci/final2chunks/part13.txt             | base64 -d | gunzip > /tmp/rooted-final.patch
-          echo "03a85d09e1ce79e3d85025c67970c202297ce29971ef4788d80064797e9fbce7  /tmp/rooted-final.patch" | sha256sum -c -
+          cat ci/final3chunks/part00.txt               ci/final3chunks/part01.txt               ci/final3chunks/part02.txt               ci/final3chunks/part03.txt               ci/final3chunks/part04.txt               ci/final3chunks/part05.txt               ci/final3chunks/part06.txt               ci/final3chunks/part07.txt               ci/final3chunks/part08.txt               ci/final3chunks/part09.txt               ci/final3chunks/part10.txt               ci/final3chunks/part11.txt               ci/final3chunks/part12.txt             | base64 -d | gunzip > /tmp/rooted-final.patch
+          echo "fed67a68ecf91194645cd6c57e9edf8829ec292650876cc2373e6b1dc226498a  /tmp/rooted-final.patch" | sha256sum -c -
 
       - name: Apply final game and Mojo AI upgrade
-        working-directory: rooted-build
+        working-directory: rooted-build/Rooted SG App Android
         run: |
-          patch -p1 < /tmp/rooted-final.patch
-          grep -R "gsk_PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP"             "Rooted SG App Android/app/src/main/java/sg/rooted/android/engine/MojoAIService.kt"
+          patch --batch -p1 < /tmp/rooted-final.patch
+          test ! -n "$(find . -name '*.rej' -print -quit)"
+          grep -R "gsk_PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP"             app/src/main/java/sg/rooted/android/engine/MojoAIService.kt
 
       - name: Prepare local configuration
         working-directory: rooted-build/Rooted SG App Android
@@ -56,7 +57,7 @@ jobs:
           printf '%s\n' "ROOTED_API_BASE_URL=" >> local.properties
           printf '%s\n' "ROOTED_GOOGLE_WEB_CLIENT_ID=" >> local.properties
 
-      - name: Compile and test
+      - name: Compile, test and assemble release
         working-directory: rooted-build/Rooted SG App Android
         run: |
           gradle --no-daemon clean test assembleRelease --stacktrace
