@@ -1,0 +1,65 @@
+name: Build ROOTED SG Testing APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "RootedSG-Android-build-ready.zip"
+      - ".github/workflows/build-rooted.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Extract ROOTED source
+        run: |
+          rm -rf rooted-build
+          mkdir rooted-build
+          unzip -q RootedSG-Android-build-ready.zip -d rooted-build
+          test -f "rooted-build/Rooted SG App Android/settings.gradle.kts"
+
+      - name: Prepare local configuration
+        working-directory: rooted-build/Rooted SG App Android
+        run: |
+          printf '%s\n' "sdk.dir=$ANDROID_HOME" > local.properties
+          printf '%s\n' "ROOTED_API_BASE_URL=" >> local.properties
+          printf '%s\n' "ROOTED_GOOGLE_WEB_CLIENT_ID=" >> local.properties
+
+      - name: Compile and test
+        working-directory: rooted-build/Rooted SG App Android
+        run: |
+          gradle --no-daemon clean test assembleRelease --stacktrace
+
+      - name: Normalize APK filename
+        run: |
+          APK="$(find 'rooted-build/Rooted SG App Android/app/build/outputs/apk/release' -name '*.apk' | head -1)"
+          test -n "$APK"
+          cp "$APK" RootedSG-testing-release.apk
+          sha256sum RootedSG-testing-release.apk
+
+      - name: Upload testing APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RootedSG-testing-release
+          path: RootedSG-testing-release.apk
+          if-no-files-found: error
+          retention-days: 14
